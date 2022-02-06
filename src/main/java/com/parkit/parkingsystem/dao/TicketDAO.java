@@ -69,16 +69,42 @@ public class TicketDAO {
         }
     }
 
+    public boolean isRecurent(String vehicleRegNumber) {
+        Connection con = null; int i=0;
+        try {
+            con = dataBaseConfig.getConnection();
+            PreparedStatement ps = con.prepareStatement(DBConstants.GET_VEH);
+            //ID, PARKING_NUMBER, VEHICLE_REG_NUMBER, PRICE, IN_TIME, OUT_TIME)
+            ps.setString(1,vehicleRegNumber);
+            ResultSet rs = ps.executeQuery();
+            while(rs.next()){
+            	i++;
+            }
+            dataBaseConfig.closeResultSet(rs);
+            dataBaseConfig.closePreparedStatement(ps);
+            if(i>1) return true ; else return false;
+        }catch (Exception ex){
+            logger.error("Error fetching next available slot",ex);
+        }finally {
+            dataBaseConfig.closeConnection(con);return false;
+        }
+    }
     public boolean updateTicket(Ticket ticket) {
         Connection con = null;
         try {
             con = dataBaseConfig.getConnection();
             PreparedStatement ps = con.prepareStatement(DBConstants.UPDATE_TICKET);
+            PreparedStatement ps1 = con.prepareStatement(DBConstants.IS_AVAILBLE);
+            ps1.setString(1,ticket.getVehicleRegNumber());
+            ResultSet rs1 = ps1.executeQuery();
+            if(rs1.next()) {return false;}
+            else {
             ps.setDouble(1, ticket.getPrice());
             ps.setTimestamp(2, new Timestamp(ticket.getOutTime().getTime()));
             ps.setInt(3,ticket.getId());
             ps.execute();
             return true;
+            }
         }catch (Exception ex){
             logger.error("Error saving ticket info",ex);
         }finally {
